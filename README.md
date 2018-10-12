@@ -4,7 +4,7 @@ ezappx 插件工程生成工具
 # 安装
 - [下载epg.zip](https://github.com/ingbyr/ezappx-plugin-generator/releases)
 - 解压epg.zip，设置环境变量 `path to epg\bin`
-- clone [ezappx-plugin-template.zip](https://github.com/ingbyr/ezappx-plugin-templeate) 到工作目录
+- clone [ezappx-plugin-template](https://github.com/ingbyr/ezappx-plugin-templeate) 到工作目录
 
 # 使用方法
 ```bash
