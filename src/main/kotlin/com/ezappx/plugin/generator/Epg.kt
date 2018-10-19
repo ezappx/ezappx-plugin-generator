@@ -2,6 +2,7 @@ package com.ezappx.plugin.generator
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.*
+import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -10,9 +11,9 @@ import kotlin.system.exitProcess
 class Epg : CliktCommand() {
     private val currentDir: Path = Paths.get(System.getProperty("user.dir"))
     private val projectName: String by option("-n", "--name", help = "Plugin name").prompt("Input the plugin name").validate { require(it.isNotBlank()) }
-    private val template: String by option("-t", "--template", help = "Template plugin path. Default path is ezappx-plugin-template").default("ezappx-plugin-template").validate { require(Files.exists(currentDir.resolve(it))) }
-    private val deployScript by option("-ds", "--deployScript", help = "Generate deployment script").flag(default = false)
-    private val gitDeployScript by option("-gds", "--gitDeployScript", help = "Generate git and deployment script").flag(default = false)
+    private val template: String by option("-t", "--template", help = "Template plugin path. Default path is ezappx-plugin-template").default("ezappx-plugin-template")
+    private val localDeploymentScript by option("-lds", "--localDeploymentScript", help = "Generate local deployment script").flag(default = false)
+    private val gitDeploymentScript by option("-gds", "--gitDeploymentScript", help = "Generate git deployment script").flag(default = false)
     private val ezappxPluginDir: String by option("-epd", "--ezappxPluginDir", help = "Ezappx plugin path").default("")
 
     private lateinit var templateDir: Path
@@ -37,16 +38,28 @@ class Epg : CliktCommand() {
     }
 
     private fun copyTemplate2Dir() {
-        if (deployScript) modifyScriptAndCopy("deploy.sh")
-        if (gitDeployScript) modifyScriptAndCopy("gitDeploy.sh")
-        templateDir.toFile().copyRecursively(projectDir.toFile(), overwrite = true)
+        val templateFiles: File = templateDir.toFile()
+        if (templateFiles.exists()) {
+            templateFiles.copyRecursively(projectDir.toFile(), overwrite = true)
+            if (localDeploymentScript) modifyScriptAndCopy("deploy-local.sh")
+            if (gitDeploymentScript) modifyScriptAndCopy("deploy-git.sh")
+        } else {
+            echo("Not a valid path: $templateDir")
+        }
     }
 
     private fun modifyScriptAndCopy(scriptName: String) {
         var content = this.javaClass.getResourceAsStream("/$scriptName").bufferedReader().use { it.readText() }
-        content = content.replace("plugin-name", projectName)
-        content = content.replace("ezappx-plugin-dir", ezappxPluginDir.replace("\\", "/"))
+        content = content.replace("ezappx-plugin-template", projectName)
+        content = content.replace("local-ezappx-project-js-dir", ezappxPluginDir.toBashPath())
         projectDir.resolve(scriptName).toFile().writeText(content)
+    }
+
+    /**
+     * Convert E:\JavaProjects\Ezappx to /E/JavaProjects/Ezappx
+     */
+    private fun String.toBashPath(): String {
+        return "/" + this.replace("\\", "/").replace(":", "")
     }
 
     private fun modifyContent() {
